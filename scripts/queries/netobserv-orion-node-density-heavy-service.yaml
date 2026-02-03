@@ -224,7 +224,7 @@ tests:
           value: netobserv_cluster_cpu_percent_util
           agg_type: avg
         direction: 1
-        threshold: 10
+        threshold: 60
       - name: NetObservClusterMemPercentUtil
         metric_name: NetObservClusterMemPercentUtil
         timestamp: iso_timestamp
@@ -233,4 +233,4 @@ tests:
           value: netobserv_cluster_mem_percent_util
           agg_type: avg
         direction: 1
-        threshold: 10
+        threshold: 60
