@@ -14,8 +14,6 @@ objects:
         type: eBPF
         ebpf:
           sampling: ${{EBPFSamplingRate}}
-          cacheMaxFlows: ${{EBPFCacheMaxFlows}}
-          cacheActiveTimeout: ${{EBPFCacheActiveTimeout}}
           privileged: "${{EBPFPrivileged}}"
           resources:
             limits:
@@ -54,10 +52,6 @@ parameters:
     value: "800Mi"
   - name: EBPFPrivileged
     value: "true"
-  - name: EBPFCacheMaxFlows
-    value: "100000"
-  - name: EBPFCacheActiveTimeout
-    value: "5s"
   - name: EBPFeatures
     value: '["PacketDrop","DNSTracking","FlowRTT","NetworkEvents","PacketTranslation","UDNMapping","IPSec"]'
   - name: FLPMemoryLimit
