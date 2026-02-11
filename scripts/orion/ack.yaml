@@ -15,3 +15,12 @@ ack:
   - uuid: 3adea5e5-e3e3-403b-979a-be7a8dd7a0b7
     metric: rssFLPTotals_avg
     reason: Bug NETOBSERV-2597 for NDH
+  - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
+    metric: nFlowsProcessedTotals_max
+    reason: NETOBSERV-2606 Positive impact because of cacheActiveTimeout increment
+  - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
+    metric: nFlowsProcessedPerMinuteTotals_max
+    reason: NETOBSERV-2606 Positive impact because of cacheActiveTimeout increment
+  - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
+    metric: nWorkloadFlowsProcessedTotals_max
+    reason: NETOBSERV-2606 Positive impact because of cacheActiveTimeout increment
