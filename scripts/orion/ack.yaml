@@ -24,3 +24,9 @@ ack:
   - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
     metric: nWorkloadFlowsProcessedTotals_max
     reason: NETOBSERV-2606 Positive impact because of cacheActiveTimeout increment
+  - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
+    metric: lokiRecordsWritten_max
+    reason: NETOBSERV-2606 Positive impact because of cacheActiveTimeout increment
+  - uuid: 15e45d52-4bb6-4c01-9f3e-65ae57ff818f
+    metric: rssEBPFTotals_avg
+    reason: Bug NETOBSERV-2597 for NDH
