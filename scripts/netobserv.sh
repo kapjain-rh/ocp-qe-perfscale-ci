@@ -172,11 +172,12 @@ get_loki_channel() {
   catalog_label=$1
   channels=$(oc get packagemanifests -l catalog="$catalog_label" -n openshift-marketplace -o jsonpath='{.items[?(@.metadata.name=="loki-operator")].status.channels[*].name}')
 
-  # this works only on bash shell, read command options are different between zsh (commonly used for OSX) and bash shell
-  read -r -a channels_arr <<< $channels
-  len=${#channels_arr[@]}
-  # use the latest channel
-  echo "${channels_arr[$len-1]}"
+  # Use awk to get the last channel (most recent) - works in both bash and zsh
+  if [ -n "$channels" ]; then
+    echo "$channels" | awk '{print $NF}'
+  else
+    echo ""
+  fi
 }
 
 waitForResources(){
@@ -196,6 +197,38 @@ waitForResources(){
   echo $rc
 }
 
+deploy_fallback_loki_catalogsource() {
+  echo "====> Deploying fallback CatalogSource for Loki operator with older operator index"
+
+  # Build oc process command with optional FALLBACK_CATALOG_TAG parameter
+  if [[ -n $FALLBACK_CATALOG_TAG ]]; then
+    oc process --ignore-unknown-parameters=true -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml -p FALLBACK_CATALOG_TAG="$FALLBACK_CATALOG_TAG" | oc apply -n openshift-marketplace -f -
+  else
+    echo "====> FALLBACK_CATALOG_TAG not set, using template default"
+    oc process --ignore-unknown-parameters=true  -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml | oc apply -n openshift-marketplace -f -
+  fi
+
+  echo "====> Waiting for fallback CatalogSource to be ready"
+  sleep 30
+  timeout=0
+  while [ $timeout -lt 180 ]; do
+    oc wait --timeout=30s --for=condition=ready pod -l olm.catalogSource=netobserv-loki-fallback -n openshift-marketplace && break
+    sleep 10
+    timeout=$((timeout+10))
+  done
+
+  echo "====> Waiting for package manifests to be populated from fallback catalog"
+  timeout=0
+  while [ $timeout -lt 120 ]; do
+    if oc get packagemanifest loki-operator -n openshift-marketplace -o jsonpath='{.metadata.labels.catalog}' 2>/dev/null | grep -q "netobserv-loki-fallback"; then
+      echo "====> Package manifests available from fallback catalog"
+      break
+    fi
+    sleep 5
+    timeout=$((timeout+5))
+  done
+}
+
 deploy_lokistack() {
   echo "====> Deploying LokiStack"
 
@@ -211,11 +244,18 @@ deploy_lokistack() {
   else
     LOKI_SOURCE="redhat-operators"
   fi
-  
+
   LOKI_CHANNEL=$(get_loki_channel $LOKI_SOURCE)
   if [ -z "${LOKI_CHANNEL}" ]; then
-    echo "====> Could not determine loki-operator subscription channel, exiting!!!!"
-    return 1
+    echo "====> Loki operator not found in ${LOKI_SOURCE}, attempting fallback to older operator index"
+    deploy_fallback_loki_catalogsource
+    LOKI_SOURCE="netobserv-loki-fallback"
+    sleep 10
+    LOKI_CHANNEL=$(get_loki_channel $LOKI_SOURCE)
+    if [ -z "${LOKI_CHANNEL}" ]; then
+      echo "====> Could not determine loki-operator subscription channel even from fallback catalog, exiting!!!!"
+      return 1
+    fi
   fi
 
   echo "====> Using Loki chanel ${LOKI_CHANNEL} to subscribe"
@@ -400,6 +440,8 @@ delete_loki_operator() {
   echo "====> Deleting Loki Operator Subscription and CSV"
   oc delete --ignore-not-found sub/loki-operator -n openshift-operators-redhat || true
   oc delete --ignore-not-found csv -l operators.coreos.com/loki-operator.openshift-operators-redhat -n openshift-operators-redhat || true
+  echo "====> Deleting fallback Loki CatalogSource (if exists)"
+  oc delete --ignore-not-found catalogsource/netobserv-loki-fallback -n openshift-marketplace || true
 }
 
 get_deployment_model() {
