@@ -205,7 +205,7 @@ deploy_fallback_loki_catalogsource() {
     oc process --ignore-unknown-parameters=true -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml -p FALLBACK_CATALOG_TAG="$FALLBACK_CATALOG_TAG" | oc apply -n openshift-marketplace -f -
   else
     echo "====> FALLBACK_CATALOG_TAG not set, using template default"
-    oc process --ignore-unknown-parameters=true  -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml | oc apply -n openshift-marketplace -f -
+    oc process --ignore-unknown-parameters=true -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml | oc apply -n openshift-marketplace -f -
   fi
 
   echo "====> Waiting for fallback CatalogSource to be ready"
@@ -250,10 +250,25 @@ deploy_lokistack() {
     echo "====> Loki operator not found in ${LOKI_SOURCE}, attempting fallback to older operator index"
     deploy_fallback_loki_catalogsource
     LOKI_SOURCE="netobserv-loki-fallback"
-    sleep 10
-    LOKI_CHANNEL=$(get_loki_channel $LOKI_SOURCE)
+
+    # Retry getting channel from fallback catalog up to 3 times
+    retry_count=0
+    max_retries=3
+    while [ $retry_count -lt $max_retries ]; do
+      sleep 10
+      LOKI_CHANNEL=$(get_loki_channel $LOKI_SOURCE)
+      if [ -n "${LOKI_CHANNEL}" ]; then
+        echo "====> Successfully found Loki channel: ${LOKI_CHANNEL}"
+        break
+      fi
+      retry_count=$((retry_count+1))
+      if [ $retry_count -lt $max_retries ]; then
+        echo "====> Attempt $retry_count/$max_retries: Loki channel not found, retrying..."
+      fi
+    done
+
     if [ -z "${LOKI_CHANNEL}" ]; then
-      echo "====> Could not determine loki-operator subscription channel even from fallback catalog, exiting!!!!"
+      echo "====> Could not determine loki-operator subscription channel even from fallback catalog after $max_retries attempts, exiting!!!!"
       return 1
     fi
   fi
