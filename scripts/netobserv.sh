@@ -200,18 +200,13 @@ waitForResources(){
 deploy_fallback_loki_catalogsource() {
   echo "====> Deploying fallback CatalogSource for Loki operator with older operator index"
 
-  # FALLBACK_CATALOG_TAG must be set explicitly
-  if [[ -z $FALLBACK_CATALOG_TAG ]]; then
-    echo "====> ERROR: FALLBACK_CATALOG_TAG environment variable is not set!"
-    echo "====> Please set FALLBACK_CATALOG_TAG to the desired operator index version (e.g., 4.21, 4.20)"
-    echo "====> Example: export FALLBACK_CATALOG_TAG=4.21"
-    return 1
+  # Build oc process command with optional FALLBACK_CATALOG_TAG parameter
+  if [[ -n $FALLBACK_CATALOG_TAG ]]; then
+    oc process -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml -p FALLBACK_CATALOG_TAG="$FALLBACK_CATALOG_TAG" | oc apply -n openshift-marketplace -f -
+  else
+    echo "====> FALLBACK_CATALOG_TAG not set, using template default"
+    oc process -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml | oc apply -n openshift-marketplace -f -
   fi
-
-  export FALLBACK_INDEX_IMAGE="registry.redhat.io/redhat/redhat-operator-index:v${FALLBACK_CATALOG_TAG}"
-  echo "====> Using fallback operator index: ${FALLBACK_INDEX_IMAGE}"
-
-  oc process -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml -p FALLBACK_CATALOG_TAG="$FALLBACK_CATALOG_TAG" | oc apply -n openshift-marketplace -f -
 
   echo "====> Waiting for fallback CatalogSource to be ready"
   sleep 30

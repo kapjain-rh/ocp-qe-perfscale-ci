@@ -6,8 +6,8 @@ objects:
   - apiVersion: operators.coreos.com/v1alpha1
     kind: CatalogSource
     metadata:
-      name: netobserv-loki-fallback
-      namespace: openshift-marketplace
+      name: ${NAME}
+      namespace: ${NAMESPACE}
     spec:
       sourceType: grpc
       image: registry.redhat.io/redhat/redhat-operator-index:v${FALLBACK_CATALOG_TAG}
@@ -18,3 +18,7 @@ objects:
 parameters:
   - name: FALLBACK_CATALOG_TAG
     value: "4.21"
+  - name: NAMESPACE
+    value: "openshift-marketplace"
+  - name: NAME
+    value: "netobserv-loki-fallback"
