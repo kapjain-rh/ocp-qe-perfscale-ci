@@ -201,7 +201,7 @@ deploy_fallback_loki_catalogsource() {
   echo "====> Deploying fallback CatalogSource for Loki operator with older operator index"
 
   # Build oc process command with optional FALLBACK_CATALOG_TAG parameter
-  if [[ -n $FALLBACK_CATALOG_TAG ]]; then
+  if [[ -n ${FALLBACK_CATALOG_TAG:-} ]]; then
     oc process --ignore-unknown-parameters=true -f $SCRIPTS_DIR/netobserv/loki-fallback-cs.yaml -p FALLBACK_CATALOG_TAG="$FALLBACK_CATALOG_TAG" | oc apply -n openshift-marketplace -f -
   else
     echo "====> FALLBACK_CATALOG_TAG not set, using template default"
